@@ -28,8 +28,6 @@ const ESTADOS_BR = [
   "PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"
 ];
 
-const CONSULTOR_PASS = import.meta.env.VITE_CONSULTOR_PASSWORD || "suno2026";
-
 const emptyForm = () => ({
   nome: "", data_nascimento: "", cidade: "", estado: "",
   casado: "", nome_conjuge: "", regime_bens: "", nascimento_conjuge: "",
@@ -447,13 +445,28 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [responses, setResponses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-  const [showAuth, setShowAuth] = useState(false);
-  const [authPass, setAuthPass] = useState("");
-  const [authError, setAuthError] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  /* ── Supabase: load responses ── */
+  // Auth state
+  const [showAuth, setShowAuth] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPass, setAuthPass] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [session, setSession] = useState(null);
+
+  // Check existing session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  /* ── Supabase: load responses (requires auth) ── */
   const loadResponses = async () => {
     setLoading(true);
     try {
@@ -461,12 +474,13 @@ export default function App() {
         .from("questionarios")
         .select("*")
         .order("created_at", { ascending: false });
-      if (!error && data) setResponses(data);
+      if (error) { console.error("Select error:", error.message); }
+      else if (data) setResponses(data);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  /* ── Supabase: submit form ── */
+  /* ── Supabase: submit form (public, no auth needed) ── */
   const handleSubmit = async () => {
     setSaving(true);
     try {
@@ -484,27 +498,59 @@ export default function App() {
     setSaving(false);
   };
 
-  /* ── Supabase: delete ── */
+  /* ── Supabase: delete (requires auth) ── */
   const handleDelete = async (id) => {
     try {
-      await supabase.from("questionarios").delete().eq("id", id);
+      const { error } = await supabase.from("questionarios").delete().eq("id", id);
+      if (error) { alert("Erro ao excluir: " + error.message); return; }
       setResponses((prev) => prev.filter((r) => r.id !== id));
       if (expandedId === id) setExpandedId(null);
     } catch (e) { console.error(e); }
   };
 
+  /* ── Auth: login with Supabase Auth ── */
+  const handleLogin = async () => {
+    setAuthLoading(true);
+    setAuthError("");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: authPass,
+      });
+      if (error) {
+        setAuthError("Email ou senha incorretos.");
+        setAuthLoading(false);
+        return;
+      }
+      setSession(data.session);
+      setShowAuth(false);
+      setAuthEmail("");
+      setAuthPass("");
+      setMode("dashboard");
+      // Load responses after login
+      setTimeout(() => loadResponses(), 100);
+    } catch (e) {
+      setAuthError("Erro de conexão.");
+      console.error(e);
+    }
+    setAuthLoading(false);
+  };
+
+  /* ── Auth: logout ── */
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setMode("form");
+    setResponses([]);
+  };
+
   const set = (key, val) => setForm((p) => ({ ...p, [key]: val }));
 
   const handleDash = () => {
-    if (authenticated) { setMode("dashboard"); loadResponses(); return; }
+    if (session) { setMode("dashboard"); loadResponses(); return; }
     setShowAuth(true);
   };
-  const handleAuth = () => {
-    if (authPass === CONSULTOR_PASS) {
-      setAuthenticated(true); setShowAuth(false); setMode("dashboard");
-      setAuthError(false); setAuthPass(""); loadResponses();
-    } else setAuthError(true);
-  };
+
   const reset = () => { setForm(emptyForm()); setStep(0); setSubmitted(false); };
 
   const sp = { form, set, step, setStep, onSubmit: handleSubmit, saving };
@@ -521,22 +567,38 @@ export default function App() {
         </div>
         <div className="hr">
           <button className={`bm ${mode === "form" ? "act" : ""}`} onClick={() => setMode("form")}>Questionário</button>
-          <button className={`bm ${mode === "dashboard" ? "act" : ""}`} onClick={handleDash}>Consultor</button>
+          <button className={`bm ${mode === "dashboard" ? "act" : ""}`} onClick={handleDash}>
+            {session ? "Consultor" : "Login Consultor"}
+          </button>
+          {session && (
+            <button className="bm" onClick={handleLogout} title="Sair">Sair</button>
+          )}
         </div>
       </div>
 
-      {/* Auth Modal */}
+      {/* Auth Modal — real Supabase Auth */}
       {showAuth && (
-        <div className="mo" onClick={() => setShowAuth(false)}>
+        <div className="mo" onClick={() => { setShowAuth(false); setAuthError(""); }}>
           <div className="mb" onClick={(e) => e.stopPropagation()}>
             <div className="lm" style={{ margin: "0 auto 16px", width: 48, height: 48, fontSize: 20 }}>S</div>
             <div className="mt">Área do Consultor</div>
-            <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>Digite a senha para acessar as respostas.</p>
-            <input className="fi" type="password" placeholder="Senha" value={authPass}
-              onChange={(e) => { setAuthPass(e.target.value); setAuthError(false); }}
-              onKeyDown={(e) => e.key === "Enter" && handleAuth()} style={{ marginBottom: 12 }} autoFocus />
-            {authError && <div className="me">Senha incorreta</div>}
-            <button className="bt bp" style={{ width: "100%", marginTop: 12 }} onClick={handleAuth}>Entrar</button>
+            <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>Faça login para acessar as respostas dos clientes.</p>
+            <div className="fg">
+              <label className="fl">Email</label>
+              <input className="fi" type="email" placeholder="seu@email.com" value={authEmail}
+                onChange={(e) => { setAuthEmail(e.target.value); setAuthError(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
+            </div>
+            <div className="fg">
+              <label className="fl">Senha</label>
+              <input className="fi" type="password" placeholder="Sua senha" value={authPass}
+                onChange={(e) => { setAuthPass(e.target.value); setAuthError(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
+            </div>
+            {authError && <div className="me">{authError}</div>}
+            <button className="bt bp" style={{ width: "100%", marginTop: 16 }} onClick={handleLogin} disabled={authLoading}>
+              {authLoading ? "Entrando..." : "Entrar"}
+            </button>
           </div>
         </div>
       )}
@@ -570,7 +632,10 @@ export default function App() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
             <div>
               <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24 }}>Respostas dos Clientes</h2>
-              <p style={{ fontSize: 13, color: "#888", marginTop: 4 }}>{responses.length} questionário{responses.length !== 1 ? "s" : ""} recebido{responses.length !== 1 ? "s" : ""}</p>
+              <p style={{ fontSize: 13, color: "#888", marginTop: 4 }}>
+                {responses.length} questionário{responses.length !== 1 ? "s" : ""} recebido{responses.length !== 1 ? "s" : ""}
+                {session?.user?.email && <span> · Logado como {session.user.email}</span>}
+              </p>
             </div>
             <button className="bt bs" onClick={loadResponses} style={{ fontSize: 13, padding: "8px 16px" }}>
               {loading ? "Atualizando..." : "↻ Atualizar"}
