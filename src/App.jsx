@@ -377,7 +377,20 @@ function StepReuniao({ form, set, step, setStep, onSubmit, saving }) {
       <p className="sd">Registro da consultoria.</p>
       <div className="fr">
         <FI label="Data da reunião" value={form.data_reuniao} onChange={(v) => set("data_reuniao", v)} type="date" />
-        <FI label="Consultor responsável" value={form.consultor} onChange={(v) => set("consultor", v)} placeholder="Nome do consultor" />
+        <div className="fg">
+  <label className="fl">Consultor responsável</label>
+  <div style={{
+    padding: "10px 14px",
+    border: "1.5px solid #E5E5E5",
+    borderRadius: 8,
+    background: "#F5F5F5",
+    color: "#555",
+    fontSize: 14,
+    fontFamily: "'DM Sans', sans-serif"
+  }}>
+    Rafael Manfroi Radaelli
+  </div>
+</div>
       </div>
       <NB step={step} setStep={setStep} total={STEPS.length} onSubmit={onSubmit} saving={saving} />
     </div>
