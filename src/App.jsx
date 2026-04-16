@@ -13,7 +13,7 @@ const STEPS = [
   { id: "offshore", label: "Offshore" },
   { id: "previdencia", label: "Previdência & Seguro" },
   { id: "societario", label: "Societário" },
-  { id: "reuniao", label: "Reunião" },
+  { id: "reuniao", label: "Fechamento" },
 ];
 
 const ESTADOS_CIVIS = [
@@ -59,7 +59,7 @@ const emptyForm = () => ({
   seguro_vida: "", valor_cobertura: "", tempo_assistencia: "",
   participacao_societaria: "", percentual_participacao: "", valor_empresa: "",
   financiamento: "", valor_financiamento: "", seguro_financiamento: "",
-  data_reuniao: "", consultor: "Rafael Manfroi Radaelli",
+  data_reuniao: new Date().toISOString().slice(0, 10), consultor: "Rafael Manfroi Radaelli",
 });
 
 /* ───── Helpers ───── */
@@ -373,24 +373,28 @@ function StepSocietario({ form, set, step, setStep, onSubmit, saving }) {
 function StepReuniao({ form, set, step, setStep, onSubmit, saving }) {
   return (
     <div className="sc">
-      <div className="ra" /><h2 className="st">Dados da Reunião</h2>
-      <p className="sd">Registro da consultoria.</p>
+      <div className="ra" /><h2 className="st">Dados do Fechamento</h2>
+      <p className="sd">Registro do fechamento da consultoria.</p>
       <div className="fr">
-        <FI label="Data da reunião" value={form.data_reuniao} onChange={(v) => set("data_reuniao", v)} type="date" />
+        <FI label="Data de preenchimento" value={form.data_reuniao} onChange={(v) => set("data_reuniao", v)} type="date" />
         <div className="fg">
-  <label className="fl">Consultor responsável</label>
-  <div style={{
-    padding: "10px 14px",
-    border: "1.5px solid #E5E5E5",
-    borderRadius: 8,
-    background: "#F5F5F5",
-    color: "#555",
-    fontSize: 14,
-    fontFamily: "'DM Sans', sans-serif"
-  }}>
-    Rafael Manfroi Radaelli
-  </div>
-</div>
+          <label className="fl">Consultor responsável</label>
+          <div style={{
+            padding: "10px 14px",
+            border: "1.5px solid #E5E5E5",
+            borderRadius: 8,
+            background: "#F5F5F5",
+            color: "#555",
+            fontSize: 14,
+            fontFamily: "'DM Sans', sans-serif",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
+            <span>Rafael Manfroi Radaelli</span>
+            <span style={{ color: "#888", fontSize: 12 }}>🔒</span>
+          </div>
+        </div>
       </div>
       <NB step={step} setStep={setStep} total={STEPS.length} onSubmit={onSubmit} saving={saving} />
     </div>
@@ -498,7 +502,7 @@ function ResponseDetail({ r }) {
           <DR label="Seguro?" value={d.seguro_financiamento} />
         </>}
       </S>
-      <S title="Reunião">
+      <S title="Fechamento">
         <DR label="Data" value={d.data_reuniao} />
         <DR label="Consultor" value={d.consultor} />
       </S>
