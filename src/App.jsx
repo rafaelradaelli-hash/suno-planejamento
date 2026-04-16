@@ -543,9 +543,6 @@ export default function App() {
   const handleSubmit = async () => {
     setSaving(true);
     try {
-      // Se houver sessão de consultor logada no mesmo navegador, desloga
-      // temporariamente para garantir que o insert seja feito como `anon`.
-      // Isso evita conflitos com RLS em navegadores que testam cliente+consultor.
       const payload = {
         nome: form.nome || "Sem nome",
         cidade: form.cidade || null,
@@ -555,25 +552,53 @@ export default function App() {
         dados: form,
       };
 
-      const { data, error } = await supabase
+      // Insert SEM .select() — anon não precisa ler de volta a linha,
+      // apenas confirmar que salvou. Isso evita conflito com RLS de SELECT.
+      let { data, error } = await supabase
         .from("questionarios")
-        .insert(payload)
-        .select();
+        .insert(payload);
+
+      // Se falhou por RLS e há sessão ativa, tenta deslogar e reenviar como anon
+      if (error && error.message?.includes("row-level security")) {
+        console.warn("RLS error detected, retrying as anon...");
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession) {
+          await supabase.auth.signOut();
+          const retry = await supabase
+            .from("questionarios")
+            .insert(payload);
+          data = retry.data;
+          error = retry.error;
+        }
+      }
 
       if (error) {
-        console.error("Insert error:", error);
-        alert(
-          "Erro ao enviar: " + error.message +
-          "\n\nSe persistir, verifique se o SQL v3 foi executado no Supabase."
-        );
+        console.error("=== ERRO DETALHADO DO SUPABASE ===");
+        console.error("Message:", error.message);
+        console.error("Code:", error.code);
+        console.error("Details:", error.details);
+        console.error("Hint:", error.hint);
+        console.error("Full error:", JSON.stringify(error, null, 2));
+
+        // Mensagem amigável para o usuário baseada no tipo de erro
+        let userMsg = "Não foi possível enviar o questionário.";
+        if (error.message?.includes("row-level security")) {
+          userMsg += "\n\nO servidor está temporariamente indisponível. Por favor, tente novamente em alguns minutos ou entre em contato com seu consultor.";
+        } else if (error.message?.includes("fetch") || error.message?.includes("network")) {
+          userMsg += "\n\nProblema de conexão. Verifique sua internet e tente novamente.";
+        } else {
+          userMsg += "\n\nDetalhe técnico: " + error.message;
+        }
+
+        alert(userMsg);
         setSaving(false);
         return;
       }
       console.log("Inserido com sucesso:", data);
       setSubmitted(true);
     } catch (e) {
-      alert("Erro de conexão. Tente novamente.");
-      console.error(e);
+      console.error("Exception:", e);
+      alert("Erro de conexão. Verifique sua internet e tente novamente.");
     }
     setSaving(false);
   };
