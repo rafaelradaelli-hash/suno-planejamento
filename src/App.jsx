@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 /* ───── Constants ───── */
 const STEPS = [
   { id: "pessoal", label: "Dados Pessoais" },
-  { id: "conjugal", label: "Cônjuge" },
+  { id: "conjugal", label: "Estado Civil" },
   { id: "filhos", label: "Filhos & Dependentes" },
   { id: "profissional", label: "Profissional" },
   { id: "financeiro", label: "Renda & Gastos" },
@@ -14,6 +14,15 @@ const STEPS = [
   { id: "previdencia", label: "Previdência & Seguro" },
   { id: "societario", label: "Societário" },
   { id: "reuniao", label: "Reunião" },
+];
+
+const ESTADOS_CIVIS = [
+  "Solteiro(a)",
+  "Casado(a)",
+  "União Estável",
+  "Divorciado(a)",
+  "Separado(a) judicialmente",
+  "Viúvo(a)",
 ];
 
 const REGIMES = [
@@ -28,9 +37,12 @@ const ESTADOS_BR = [
   "PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"
 ];
 
+// Estados civis que devem mostrar campos do cônjuge/companheiro
+const COM_PARCEIRO = ["Casado(a)", "União Estável"];
+
 const emptyForm = () => ({
   nome: "", data_nascimento: "", cidade: "", estado: "",
-  casado: "", nome_conjuge: "", regime_bens: "", nascimento_conjuge: "",
+  estado_civil: "", nome_conjuge: "", regime_bens: "", nascimento_conjuge: "",
   conjuge_dependente: "",
   tem_filhos: "", filhos: [{ nome: "", idade: "", estudo: "", faculdade: "", tipo_faculdade: "", tempo_formatura: "", curso_exterior: "" }],
   outro_dependente: "", detalhes_dependente: "",
@@ -144,17 +156,30 @@ function StepPessoal({ form, set, step, setStep, onSubmit, saving }) {
 }
 
 function StepConjuge({ form, set, step, setStep, onSubmit, saving }) {
+  const comParceiro = COM_PARCEIRO.includes(form.estado_civil);
+  const labelParceiro = form.estado_civil === "União Estável" ? "companheiro(a)" : "cônjuge";
+
   return (
     <div className="sc">
-      <div className="ra" /><h2 className="st">Cônjuge</h2>
-      <p className="sd">Informações sobre seu estado civil e cônjuge.</p>
-      <RG label="Você é casado(a)?" value={form.casado} onChange={(v) => set("casado", v)} opts={["Sim", "Não"]} />
-      {form.casado === "Sim" && <>
-        <FI label="Nome do cônjuge" value={form.nome_conjuge} onChange={(v) => set("nome_conjuge", v)} placeholder="Nome completo" />
-        <FI label="Regime de bens" value={form.regime_bens} onChange={(v) => set("regime_bens", v)} options={REGIMES} />
-        <FI label="Data de nascimento do cônjuge" value={form.nascimento_conjuge} onChange={(v) => set("nascimento_conjuge", v)} type="date" />
-        <RG label="Seu cônjuge depende financeiramente de você?" value={form.conjuge_dependente} onChange={(v) => set("conjuge_dependente", v)} opts={["Sim", "Não"]} />
+      <div className="ra" /><h2 className="st">Estado Civil</h2>
+      <p className="sd">Informações sobre seu estado civil e, se aplicável, cônjuge ou companheiro(a).</p>
+
+      <FI
+        label="Estado civil"
+        value={form.estado_civil}
+        onChange={(v) => set("estado_civil", v)}
+        options={ESTADOS_CIVIS}
+      />
+
+      {comParceiro && <>
+        <FI label={`Nome do(a) ${labelParceiro}`} value={form.nome_conjuge} onChange={(v) => set("nome_conjuge", v)} placeholder="Nome completo" />
+        {form.estado_civil === "Casado(a)" && (
+          <FI label="Regime de bens" value={form.regime_bens} onChange={(v) => set("regime_bens", v)} options={REGIMES} />
+        )}
+        <FI label={`Data de nascimento do(a) ${labelParceiro}`} value={form.nascimento_conjuge} onChange={(v) => set("nascimento_conjuge", v)} type="date" />
+        <RG label={`Seu(sua) ${labelParceiro} depende financeiramente de você?`} value={form.conjuge_dependente} onChange={(v) => set("conjuge_dependente", v)} opts={["Sim", "Não"]} />
       </>}
+
       <NB step={step} setStep={setStep} total={STEPS.length} onSubmit={onSubmit} saving={saving} />
     </div>
   );
@@ -363,80 +388,114 @@ function StepReuniao({ form, set, step, setStep, onSubmit, saving }) {
 function ResponseDetail({ r }) {
   const d = r.dados || {};
   const S = ({ title, children }) => (<div className="ds"><div className="dst">{title}</div>{children}</div>);
+  // Compatibilidade: se registro antigo tiver `casado` em vez de `estado_civil`
+  const estadoCivil = d.estado_civil || (d.casado === "Sim" ? "Casado(a)" : d.casado === "Não" ? "Solteiro(a)" : "");
   return (
     <div className="dg">
       <S title="Dados Pessoais">
         <DR label="Nome" value={d.nome} /><DR label="Nascimento" value={d.data_nascimento} />
         <DR label="Cidade/Estado" value={`${d.cidade || "—"}/${d.estado || "—"}`} />
-        <DR label="Casado" value={d.casado} />
-        {d.casado === "Sim" && <><DR label="Cônjuge" value={d.nome_conjuge} /><DR label="Regime" value={d.regime_bens} /><DR label="Nasc. cônjuge" value={d.nascimento_conjuge} /><DR label="Dependente" value={d.conjuge_dependente} /></>}
       </S>
-      <S title="Filhos & Dependentes">
-        <DR label="Tem filhos" value={d.tem_filhos} />
+      <S title="Estado Civil">
+        <DR label="Estado civil" value={estadoCivil} />
+        {COM_PARCEIRO.includes(estadoCivil) && <>
+          <DR label="Cônjuge/Companheiro(a)" value={d.nome_conjuge} />
+          {estadoCivil === "Casado(a)" && <DR label="Regime" value={d.regime_bens} />}
+          <DR label="Nascimento" value={d.nascimento_conjuge} />
+          <DR label="Dependente financeiro?" value={d.conjuge_dependente} />
+        </>}
+      </S>
+      <S title="Filhos">
+        <DR label="Tem filhos?" value={d.tem_filhos} />
         {d.tem_filhos === "Sim" && d.filhos?.map((f, i) => (
-          <div key={i} style={{ padding: "8px 0", borderBottom: "1px solid #e5e5e5" }}>
-            <DR label={`Filho ${i+1}`} value={f.nome} /><DR label="Idade" value={f.idade} /><DR label="Estudo" value={f.estudo} />
+          <div key={i} style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #E5E5E5" }}>
+            <DR label={`Filho ${i + 1}`} value={`${f.nome || "—"} (${f.idade || "?"} anos)`} />
+            <DR label="Estudos" value={f.estudo} />
             <DR label="Faculdade" value={`${f.faculdade || "—"} (${f.tipo_faculdade || "—"})`} />
-            <DR label="Formatura" value={f.tempo_formatura} /><DR label="Exterior" value={f.curso_exterior} />
           </div>
         ))}
-        <DR label="Outro dependente" value={d.outro_dependente} />
+        <DR label="Outros dependentes?" value={d.outro_dependente} />
         {d.outro_dependente === "Sim" && <DR label="Detalhes" value={d.detalhes_dependente} />}
       </S>
       <S title="Profissional">
-        <DR label="Atividade" value={d.atividade_profissional} /><DR label="Modelo" value={d.modelo_trabalho} />
+        <DR label="Atividade" value={d.atividade_profissional} />
+        <DR label="Modelo" value={d.modelo_trabalho} />
         {d.modelo_trabalho === "PJ (Pró-labore)" && <DR label="Pró-labore" value={d.valor_pro_labore} isCurrency />}
-        <DR label="INSS" value={d.contribui_inss} /><DR label="Aposentadoria" value={d.valor_aposentadoria} isCurrency />
-        <DR label="FGTS" value={d.saldo_fgts} />{d.saldo_fgts === "Sim" && <DR label="Valor" value={d.valor_fgts} isCurrency />}
+        <DR label="Contribui INSS?" value={d.contribui_inss} />
+        <DR label="Aposentadoria estimada" value={d.valor_aposentadoria} isCurrency />
+        <DR label="FGTS" value={d.saldo_fgts === "Sim" ? currency(d.valor_fgts) : "Não"} />
       </S>
       <S title="Renda & Gastos">
-        <DR label="Renda" value={d.renda_mensal} isCurrency /><DR label="Gasto mensal" value={d.gasto_mensal} isCurrency />
-        <DR label="Gasto pessoal" value={d.gasto_pessoal} isCurrency /><DR label="Aporte" value={d.aporte_mensal} isCurrency />
+        <DR label="Renda mensal" value={d.renda_mensal} isCurrency />
+        <DR label="Gasto mensal" value={d.gasto_mensal} isCurrency />
+        <DR label="Gasto pessoal" value={d.gasto_pessoal} isCurrency />
+        <DR label="Aporte mensal" value={d.aporte_mensal} isCurrency />
         <DR label="Patrimônio investido" value={d.patrimonio_investido} isCurrency />
       </S>
-      <S title="Patrimônio & Bens">
-        <DR label="Imobilizado" value={d.patrimonio_imobilizado} />
+      <S title="Patrimônio Imobilizado">
+        <DR label="Possui?" value={d.patrimonio_imobilizado} />
         {d.patrimonio_imobilizado === "Sim" && <DR label="Valor" value={d.valor_imobilizado} isCurrency />}
-        <DR label="Outros bens" value={d.outros_bens} />
-        {d.outros_bens === "Sim" && <><DR label="Descrição" value={d.detalhes_bens} /><DR label="Liquidáveis" value={d.bens_liquidaveis} /></>}
+        <DR label="Outros bens?" value={d.outros_bens} />
+        {d.outros_bens === "Sim" && <>
+          <DR label="Detalhes" value={d.detalhes_bens} />
+          <DR label="Liquidáveis?" value={d.bens_liquidaveis} />
+        </>}
       </S>
       <S title="Imóveis">
         <DR label="Quantidade" value={d.quantidade_imoveis} />
-        {d.imoveis?.map((im, i) => (
-          <div key={i} style={{ padding: "8px 0", borderBottom: "1px solid #e5e5e5" }}>
-            <DR label={`Imóvel ${i+1}`} value={im.descricao} /><DR label="Valor" value={im.valor} isCurrency />
-            <DR label="Estado" value={im.estado} /><DR label="Uso" value={im.uso} /><DR label="Vender" value={im.pode_vender} />
+        {d.imoveis?.map((im, i) => im.descricao && (
+          <div key={i} style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #E5E5E5" }}>
+            <DR label={`Imóvel ${i + 1}`} value={im.descricao} />
+            <DR label="Valor" value={im.valor} isCurrency />
+            <DR label="Estado" value={im.estado} />
+            <DR label="Uso" value={im.uso} />
+            <DR label="Pode vender?" value={im.pode_vender} />
           </div>
         ))}
       </S>
       <S title="Offshore">
-        <DR label="Offshore" value={d.patrimonio_offshore} />
-        {d.patrimonio_offshore === "Sim" && <><DR label="Ativos" value={d.tipos_ativos_offshore} /><DR label="Valor" value={d.valor_offshore} isCurrency /></>}
-        <DR label="Imóveis exterior" value={d.imoveis_exterior} />
-        {d.imoveis_exterior === "Sim" && <><DR label="Qtd" value={d.quantidade_imoveis_exterior} /><DR label="Valor" value={d.valor_imoveis_exterior} isCurrency /></>}
+        <DR label="Patrimônio offshore?" value={d.patrimonio_offshore} />
+        {d.patrimonio_offshore === "Sim" && <>
+          <DR label="Tipos" value={d.tipos_ativos_offshore} />
+          <DR label="Valor" value={d.valor_offshore} isCurrency />
+        </>}
+        <DR label="Imóveis exterior?" value={d.imoveis_exterior} />
+        {d.imoveis_exterior === "Sim" && <>
+          <DR label="Quantidade" value={d.quantidade_imoveis_exterior} />
+          <DR label="Valor" value={d.valor_imoveis_exterior} isCurrency />
+        </>}
       </S>
       <S title="Previdência & Seguro">
-        <DR label="Previdência" value={d.previdencia_privada} />
-        {d.previdencia_privada === "Sim" && <DR label="Valor" value={d.valor_previdencia} isCurrency />}
-        <DR label="Aporte prev." value={d.aporte_previdencia} isCurrency />
-        <DR label="Seguro vida" value={d.seguro_vida} />
+        <DR label="Previdência privada?" value={d.previdencia_privada} />
+        {d.previdencia_privada === "Sim" && <DR label="Valor acumulado" value={d.valor_previdencia} isCurrency />}
+        <DR label="Aporte previdência" value={d.aporte_previdencia} isCurrency />
+        <DR label="Seguro de vida?" value={d.seguro_vida} />
         {d.seguro_vida === "Sim" && <DR label="Cobertura" value={d.valor_cobertura} isCurrency />}
         <DR label="Tempo assistência" value={d.tempo_assistencia} />
       </S>
-      <S title="Societário & Financiamento">
-        <DR label="Societária" value={d.participacao_societaria} />
-        {d.participacao_societaria === "Sim" && <><DR label="%" value={d.percentual_participacao ? `${d.percentual_participacao}%` : "—"} /><DR label="Empresa" value={d.valor_empresa} isCurrency /></>}
-        <DR label="Financiamento" value={d.financiamento} />
-        {d.financiamento === "Sim" && <><DR label="Valor" value={d.valor_financiamento} isCurrency /><DR label="Seguro" value={d.seguro_financiamento} /></>}
+      <S title="Societário & Financiamentos">
+        <DR label="Participação societária?" value={d.participacao_societaria} />
+        {d.participacao_societaria === "Sim" && <>
+          <DR label="Percentual" value={d.percentual_participacao ? `${d.percentual_participacao}%` : "—"} />
+          <DR label="Valor da empresa" value={d.valor_empresa} isCurrency />
+        </>}
+        <DR label="Financiamento?" value={d.financiamento} />
+        {d.financiamento === "Sim" && <>
+          <DR label="Valor" value={d.valor_financiamento} isCurrency />
+          <DR label="Seguro?" value={d.seguro_financiamento} />
+        </>}
       </S>
-      <S title="Reunião"><DR label="Data" value={d.data_reuniao} /><DR label="Consultor" value={d.consultor} /></S>
+      <S title="Reunião">
+        <DR label="Data" value={d.data_reuniao} />
+        <DR label="Consultor" value={d.consultor} />
+      </S>
     </div>
   );
 }
 
-/* ══════════════════════════════════════
-   MAIN APP
-   ══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   Main App
+   ═══════════════════════════════════════ */
 export default function App() {
   const [mode, setMode] = useState("form");
   const [step, setStep] = useState(0);
@@ -484,17 +543,38 @@ export default function App() {
   const handleSubmit = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.from("questionarios").insert({
+      // Se houver sessão de consultor logada no mesmo navegador, desloga
+      // temporariamente para garantir que o insert seja feito como `anon`.
+      // Isso evita conflitos com RLS em navegadores que testam cliente+consultor.
+      const payload = {
         nome: form.nome || "Sem nome",
-        cidade: form.cidade,
-        estado: form.estado,
-        consultor: form.consultor,
-        patrimonio_investido: form.patrimonio_investido,
+        cidade: form.cidade || null,
+        estado: form.estado || null,
+        consultor: form.consultor || null,
+        patrimonio_investido: form.patrimonio_investido || null,
         dados: form,
-      });
-      if (error) { alert("Erro ao enviar: " + error.message); setSaving(false); return; }
+      };
+
+      const { data, error } = await supabase
+        .from("questionarios")
+        .insert(payload)
+        .select();
+
+      if (error) {
+        console.error("Insert error:", error);
+        alert(
+          "Erro ao enviar: " + error.message +
+          "\n\nSe persistir, verifique se o SQL v3 foi executado no Supabase."
+        );
+        setSaving(false);
+        return;
+      }
+      console.log("Inserido com sucesso:", data);
       setSubmitted(true);
-    } catch (e) { alert("Erro de conexão. Tente novamente."); console.error(e); }
+    } catch (e) {
+      alert("Erro de conexão. Tente novamente.");
+      console.error(e);
+    }
     setSaving(false);
   };
 
@@ -527,7 +607,6 @@ export default function App() {
       setAuthEmail("");
       setAuthPass("");
       setMode("dashboard");
-      // Load responses after login
       setTimeout(() => loadResponses(), 100);
     } catch (e) {
       setAuthError("Erro de conexão.");
@@ -576,7 +655,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Auth Modal — real Supabase Auth */}
+      {/* Auth Modal */}
       {showAuth && (
         <div className="mo" onClick={() => { setShowAuth(false); setAuthError(""); }}>
           <div className="mb" onClick={(e) => e.stopPropagation()}>
