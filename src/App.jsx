@@ -59,7 +59,7 @@ const emptyForm = () => ({
   seguro_vida: "", valor_cobertura: "", tempo_assistencia: "",
   participacao_societaria: "", percentual_participacao: "", valor_empresa: "",
   financiamento: "", valor_financiamento: "", seguro_financiamento: "",
-  data_reuniao: "", consultor: "",
+  data_reuniao: "", consultor: "Rafael Manfroi Radaelli",
 });
 
 /* ───── Helpers ───── */
