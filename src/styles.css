@@ -31,7 +31,7 @@ body, html, #root {
 .hd { background: var(--w); border-bottom: 3px solid var(--r); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: var(--ss); }
 .hl { display: flex; align-items: center; gap: 12px; }
 .lm { width: 40px; height: 40px; background: var(--r); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 18px; flex-shrink: 0; }
-.ht { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; }
+.ht { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; }
 .hs { font-size: 12px; color: var(--g5); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
 .hr { display: flex; align-items: center; gap: 12px; }
 .bm { padding: 8px 18px; border-radius: 999px; border: 1.5px solid var(--g2); background: var(--w); font-size: 13px; font-weight: 500; color: var(--g7); cursor: pointer; transition: var(--tr); font-family: 'DM Sans', sans-serif; }
@@ -51,7 +51,7 @@ body, html, #root {
 .mc { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24px 100px; }
 .sc { background: var(--w); border-radius: var(--rad); padding: 32px; box-shadow: var(--ss); margin-bottom: 24px; border: 1px solid var(--g2); animation: fu 0.3s ease; }
 @keyframes fu { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.st { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+.st { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600; margin-bottom: 4px; }
 .sd { font-size: 14px; color: var(--g5); margin-bottom: 28px; line-height: 1.5; }
 .ra { width: 40px; height: 3px; background: var(--r); border-radius: 2px; margin-bottom: 20px; }
 
@@ -97,7 +97,7 @@ textarea.fi { resize: vertical; min-height: 80px; }
 .rc { background: var(--w); border-radius: var(--rad); padding: 24px; margin-bottom: 16px; border: 1px solid var(--g2); box-shadow: var(--ss); transition: var(--tr); }
 .rc:hover { border-color: var(--r); box-shadow: var(--sm); }
 .rh { display: flex; justify-content: space-between; align-items: flex-start; }
-.rn { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; }
+.rn { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; }
 .rd { font-size: 12px; color: var(--g5); background: var(--g1); padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 .rm { display: flex; gap: 16px; margin-top: 8px; font-size: 13px; color: var(--g5); flex-wrap: wrap; }
 
@@ -113,16 +113,16 @@ textarea.fi { resize: vertical; min-height: 80px; }
 
 /* ─── Empty / Success ─── */
 .ei { width: 64px; height: 64px; background: var(--rl); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; }
-.et { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 8px; }
+.et { font-family: 'Fraunces', serif; font-size: 20px; margin-bottom: 8px; font-weight: 600; }
 .ed { color: var(--g5); font-size: 14px; }
 .si { width: 80px; height: 80px; background: linear-gradient(135deg, var(--r), #FF4D5E); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 36px; color: #fff; box-shadow: 0 8px 24px rgba(232,0,28,0.3); }
-.sut { font-family: 'Playfair Display', serif; font-size: 28px; margin-bottom: 8px; }
+.sut { font-family: 'Fraunces', serif; font-size: 28px; margin-bottom: 8px; font-weight: 600; }
 .sud { color: var(--g5); font-size: 15px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
 
 /* ─── Modal ─── */
 .mo { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
 .mb { background: var(--w); border-radius: var(--rad); padding: 32px; width: 360px; max-width: 90vw; box-shadow: var(--sl); text-align: center; }
-.mt { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 16px; }
+.mt { font-family: 'Fraunces', serif; font-size: 20px; margin-bottom: 16px; font-weight: 600; }
 .me { color: var(--r); font-size: 13px; margin-top: 8px; }
 
 /* ─── Loading Spinner ─── */
